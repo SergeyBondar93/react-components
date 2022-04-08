@@ -1,5 +1,5 @@
 {
-  "name": "@serj/button",
+  "name": "@serj/modal",
   "version": "1.0.0",
   "description": "",
   "main": "src/index.js",
@@ -8,7 +8,12 @@
   "author": "Sergey Bondar <abobopw@gmail.com>",
   "dependencies": {
     "react": "^17.0.2",
+    "react-transition-group": "^4.4.2",
     "react-dom": "^17.0.2"
+  },
+  "devDependencies": {
+    "@types/react-transition-group": "^4.4.4",
+    "@serj/scrollbar-width-spy": "^1.0.0"
   },
   "scripts": {
     "build": "npx webpack --config ../../webpack.config.ts"

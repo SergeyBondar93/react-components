@@ -1,0 +1,27 @@
+.modal-overlay {
+  top: 0px;
+  left: 0px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+  opacity: 1;
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+}
+
+.modal-content {
+  width: 500px;
+  min-height: 200px;
+  max-height: calc(100vh - 20px);
+  overflow: auto;
+  border: 1px solid black;
+  background-color: white;
+  top: 100px;
+}
+
+.modal-close-button-wrapper {
+  display: flex;
+  flex-direction: row-reverse;
+}

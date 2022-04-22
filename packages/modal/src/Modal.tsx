@@ -60,36 +60,39 @@ export const Modal = memo(
         e.stopPropagation();
       }, []);
 
-    const onMouseMoveRaf = useCallback(({ clientX, clientY }: MouseEvent) => {
-      wasModevBeforeRef.current = true;
-      const offsetX = clientX - offsetClickCoordsRef.current?.x!;
-      const offsetY = clientY - offsetClickCoordsRef.current?.y!;
+    const handleMouseMoveRaf = useCallback(
+      ({ clientX, clientY }: MouseEvent) => {
+        wasModevBeforeRef.current = true;
+        const offsetX = clientX - offsetClickCoordsRef.current?.x!;
+        const offsetY = clientY - offsetClickCoordsRef.current?.y!;
 
-      setModalOffset({
-        x: offsetX,
-        y: offsetY,
-      });
-      needForRafRef.current = true;
-    }, []);
+        setModalOffset({
+          x: offsetX,
+          y: offsetY,
+        });
+        needForRafRef.current = true;
+      },
+      []
+    );
 
-    const onMouseMove = useCallback((e) => {
+    const handleMouseMove = useCallback((e) => {
       if (needForRafRef.current) {
         needForRafRef.current = false;
-        requestAnimationFrame(() => onMouseMoveRaf(e));
+        requestAnimationFrame(() => handleMouseMoveRaf(e));
       }
     }, []);
 
-    const onMouseUp = useCallback(() => {
+    const handleMouseUp = useCallback(() => {
       setTimeout(() => {
         isMovedRef.current = false;
       }, 100);
 
       document.body.style.userSelect = "auto";
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp, true);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp, true);
     }, []);
 
-    const onMouseDown: MouseEventHandler<HTMLDivElement> = useCallback(
+    const handleMouseDown: MouseEventHandler<HTMLDivElement> = useCallback(
       ({ clientX, clientY }) => {
         const { x, y } = modalContentRef.current!.getBoundingClientRect();
 
@@ -99,13 +102,13 @@ export const Modal = memo(
         };
         isMovedRef.current = true;
         document.body.style.userSelect = "none";
-        window.addEventListener("mousemove", onMouseMove);
-        window.addEventListener("mouseup", onMouseUp, true);
+        window.addEventListener("mousemove", handleMouseMove);
+        window.addEventListener("mouseup", handleMouseUp, true);
       },
       []
     );
 
-    const onToggleNeedOverlay = useCallback(() => {
+    const handleToggleNeedOverlay = useCallback(() => {
       setNeedOverlay(!needOverlay);
     }, [needOverlay]);
 
@@ -139,11 +142,12 @@ export const Modal = memo(
                   onClick={handleContentClick}
                 >
                   <div className="modal-content-close-button-wrapper">
-                    <button onClick={onToggleNeedOverlay}>Over</button>
+                    <button onClick={handleToggleNeedOverlay}>Over</button>
                     <div
                       className="modal-content-header-movable-zone"
-                      onMouseDown={onMouseDown}
+                      onMouseDown={handleMouseDown}
                     />{" "}
+                    <button onClick={handleClose}>Roll</button>{" "}
                     <button onClick={handleClose}>Close</button>{" "}
                   </div>
                   <div className="modal-content-children-wrapper">

@@ -24,4 +24,8 @@
 .modal-close-button-wrapper {
   display: flex;
   flex-direction: row-reverse;
+  padding: 4px;
+  border-bottom: 1px solid #cfcfca;
+  margin-bottom: 8px;
+  cursor: grab;
 }

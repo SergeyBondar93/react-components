@@ -55,10 +55,10 @@ export const ALotOfModals = () => {
         <button type="button" onClick={handleOpenTwo}>
           Second
         </button>
+        {longText}
         <button type="button" onClick={handleOpenThree}>
           Third
         </button>
-        {longText}
         <Modal onClose={handleClose} name="one" isOpen={modalsState.one}>
           <InternalModal />
           <ModalContent name="One" />

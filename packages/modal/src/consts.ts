@@ -3,14 +3,15 @@ import { TransitionStatus } from "react-transition-group";
 export const duration = 200;
 
 type TransitionStatusMaps = {
-  [index in TransitionStatus]?: number;
+  [key in TransitionStatus]: number;
 };
 
 export const scaleModal: TransitionStatusMaps = {
   entering: 0.8,
   entered: 1,
-  exiting: 0.8,
+  exiting: 0.5,
   exited: 0.8,
+  unmounted: 0,
 };
 
 export const opacityModal: TransitionStatusMaps = {
@@ -18,6 +19,7 @@ export const opacityModal: TransitionStatusMaps = {
   entered: 1,
   exiting: 0.6,
   exited: 0.6,
+  unmounted: 0,
 };
 
 export const opacityOverlay: TransitionStatusMaps = {
@@ -25,4 +27,5 @@ export const opacityOverlay: TransitionStatusMaps = {
   entered: 1,
   exiting: 0,
   exited: 0,
+  unmounted: 0,
 };

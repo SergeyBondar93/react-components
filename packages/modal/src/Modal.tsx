@@ -17,21 +17,36 @@ import "./style.css";
 export const Modal = memo(
   ({ children, isOpen: isOpenProps = false, onClose, name }: any) => {
     const [isOpen, setIsOpen] = useState(isOpenProps);
+    const [needOverlay, setNeedOverlay] = useState(true);
+    const [modalOffset, setModalOffset] = useState({ x: 0, y: 0 });
+
     const portalRef = useRef<HTMLDivElement>();
     const offsetClickCoordsRef = useRef<{ x: number; y: number }>();
     const isMovedRef = useRef(false);
-
     const wasModevBeforeRef = useRef(false);
-
     const modalContentRef = useRef<HTMLDivElement>(null);
-
     const needForRafRef = useRef(true);
-
-    const [modalOffset, setModalOffset] = useState({ x: 0, y: 0 });
 
     useEffect(() => {
       setIsOpen(isOpenProps);
     }, [isOpenProps]);
+
+    useEffect(() => {
+      if (isOpen && (!modalOffset.x || !modalOffset.y)) {
+        setTimeout(() => {
+          const { width, height } =
+            modalContentRef.current?.getBoundingClientRect()!;
+          const offsetLeft =
+            (window.innerWidth - width / scaleModal.entering) / 2;
+          const offsetTop =
+            (window.innerHeight - height / scaleModal.entering) / 2;
+          setModalOffset({
+            x: offsetLeft,
+            y: offsetTop,
+          });
+        }, 0);
+      }
+    }, [isOpen]);
 
     const handleClose: React.MouseEventHandler<
       HTMLDivElement | HTMLButtonElement
@@ -40,22 +55,15 @@ export const Modal = memo(
       onClose(name);
     }, [onClose, name]);
 
-    const handleContentClick: React.MouseEventHandler<HTMLDivElement> = (e) => {
-      e.stopPropagation();
-    };
+    const handleContentClick: React.MouseEventHandler<HTMLDivElement> =
+      useCallback((e) => {
+        e.stopPropagation();
+      }, []);
 
     const onMouseMoveRaf = useCallback(({ clientX, clientY }: MouseEvent) => {
       wasModevBeforeRef.current = true;
       const offsetX = clientX - offsetClickCoordsRef.current?.x!;
       const offsetY = clientY - offsetClickCoordsRef.current?.y!;
-
-      console.log(
-        "!!MOVE",
-        offsetClickCoordsRef.current?.x,
-        offsetClickCoordsRef.current?.y,
-        offsetX,
-        offsetY
-      );
 
       setModalOffset({
         x: offsetX,
@@ -89,8 +97,6 @@ export const Modal = memo(
           x: clientX - x,
           y: clientY - y,
         };
-        console.log("!!DOWN", x, y, clientX - x, clientY - y);
-
         isMovedRef.current = true;
         document.body.style.userSelect = "none";
         window.addEventListener("mousemove", onMouseMove);
@@ -99,47 +105,52 @@ export const Modal = memo(
       []
     );
 
+    const onToggleNeedOverlay = useCallback(() => {
+      setNeedOverlay(!needOverlay);
+    }, [needOverlay]);
+
     return (
       <Portal ref={portalRef}>
         <Transition timeout={{ enter: 0, exit: duration }} in={isOpen}>
           {(state) =>
             [ENTERING, ENTERED, EXITING].includes(state) && (
-              <div
-                className="modal-overlay"
-                style={{
-                  transition: `${duration}ms`,
-                  opacity: opacityOverlay[state],
-                }}
-                onClick={handleClose}
-              >
+              <>
+                {needOverlay && (
+                  <div
+                    className="modal-overlay"
+                    style={{
+                      transition: `${duration}ms`,
+                      opacity: opacityOverlay[state],
+                    }}
+                    onClick={handleClose}
+                  ></div>
+                )}
                 <div
                   className="modal-content"
                   ref={modalContentRef}
                   style={{
                     transition: `${duration}ms`,
                     transitionProperty: "transform",
-
-                    ...(wasModevBeforeRef.current && {
-                      position: "fixed",
-                      top: `${modalOffset.y}px`,
-                      left: `${modalOffset.x}px`,
-                    }),
-
+                    top: `${modalOffset.y}px`,
+                    left: `${modalOffset.x}px`,
                     transform: `scale(${scaleModal[state]})`,
                     opacity: opacityModal[state],
                   }}
                   onClick={handleContentClick}
                 >
-                  <div
-                    className="modal-close-button-wrapper"
-                    onMouseDown={onMouseDown}
-                  >
-                    {" "}
+                  <div className="modal-content-close-button-wrapper">
+                    <button onClick={onToggleNeedOverlay}>Over</button>
+                    <div
+                      className="modal-content-header-movable-zone"
+                      onMouseDown={onMouseDown}
+                    />{" "}
                     <button onClick={handleClose}>Close</button>{" "}
                   </div>
-                  {children}
+                  <div className="modal-content-children-wrapper">
+                    {children}
+                  </div>
                 </div>
-              </div>
+              </>
             )
           }
         </Transition>

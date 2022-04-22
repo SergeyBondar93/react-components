@@ -15,17 +15,32 @@
   width: 500px;
   min-height: 200px;
   max-height: calc(100vh - 20px);
-  overflow: auto;
+  overflow: hidden;
   border: 1px solid black;
   background-color: white;
+  position: fixed;
   top: 100px;
+  display: flex;
+  flex-direction: column;
 }
 
-.modal-close-button-wrapper {
+.modal-content-close-button-wrapper {
   display: flex;
-  flex-direction: row-reverse;
   padding: 4px;
   border-bottom: 1px solid #cfcfca;
-  margin-bottom: 8px;
+
+  width: 100%;
+  height: 30px;
+  box-sizing: border-box;
+}
+
+.modal-content-children-wrapper {
+  overflow: auto;
+  padding: 8px;
+}
+
+.modal-content-header-movable-zone {
   cursor: grab;
+  background-color: red;
+  flex-grow: 1;
 }

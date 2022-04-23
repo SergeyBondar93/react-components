@@ -140,13 +140,11 @@ export const Modal = memo(
     }, [needOverlay]);
 
     const handleRoll = useCallback(() => {
-      setNeedOverlay(false);
       setIsRolled(true);
       isRollingRef.current = true;
     }, [name]);
 
     const handleUnRoll = useCallback(() => {
-      setNeedOverlay(true);
       setIsRolled(false);
       setTimeout(() => {
         isRollingRef.current = false;
@@ -165,7 +163,7 @@ export const Modal = memo(
           {(state) =>
             [ENTERING, ENTERED, EXITING].includes(state) && (
               <>
-                {needOverlay && (
+                {needOverlay && !isRolled && (
                   <div
                     className="modal-overlay"
                     style={{

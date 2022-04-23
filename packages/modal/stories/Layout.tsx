@@ -4,6 +4,8 @@ import ScrollbarWidthSpy, {
   useScrollBarContext,
 } from "@serj/scrollbar-width-spy";
 
+import { ModalContextProvider } from "../src/ModalContext";
+
 const App = ({ children }: any) => {
   const { visible, width } = useScrollBarContext();
 
@@ -19,10 +21,10 @@ const App = ({ children }: any) => {
 
 export const Layout: FC = ({ children }) => {
   return (
-    <>
+    <ModalContextProvider>
       <ScrollbarWidthSpy>
         <App>{children}</App>
       </ScrollbarWidthSpy>
-    </>
+    </ModalContextProvider>
   );
 };

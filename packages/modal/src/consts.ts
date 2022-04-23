@@ -1,6 +1,8 @@
 import { TransitionStatus } from "react-transition-group";
 
-export const duration = 200;
+export const duration = 400;
+
+export const rollWidth = 200;
 
 type TransitionStatusMaps = {
   [key in TransitionStatus]: number;
@@ -15,7 +17,7 @@ export const scaleModal: TransitionStatusMaps = {
 };
 
 export const opacityModal: TransitionStatusMaps = {
-  entering: 0.6,
+  entering: 0,
   entered: 1,
   exiting: 0.6,
   exited: 0.6,

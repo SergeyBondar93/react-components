@@ -59,16 +59,31 @@ export const ALotOfModals = () => {
         <button type="button" onClick={handleOpenThree}>
           Third
         </button>
-        <Modal onClose={handleClose} name="one" isOpen={modalsState.one}>
+        <Modal
+          onClose={handleClose}
+          name="one"
+          isOpen={modalsState.one}
+          title={"User one"}
+        >
           <InternalModal />
           <ModalContent name="One" />
           <ModalContent name="One" />
           {longText}
         </Modal>
-        <Modal onClose={handleClose} name="two" isOpen={modalsState.two}>
+        <Modal
+          onClose={handleClose}
+          name="two"
+          isOpen={modalsState.two}
+          title={"User two"}
+        >
           <ModalContent name="Two" />
         </Modal>
-        <Modal onClose={handleClose} name="three" isOpen={modalsState.three}>
+        <Modal
+          onClose={handleClose}
+          name="three"
+          isOpen={modalsState.three}
+          title={"User three with long title"}
+        >
           <ModalContent name="Three" />
         </Modal>
       </div>

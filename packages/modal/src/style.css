@@ -22,6 +22,7 @@
   top: 100px;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .modal-content-close-button-wrapper {
@@ -43,4 +44,27 @@
   cursor: grab;
   background-color: red;
   flex-grow: 1;
+}
+
+.modal-roll {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  padding: 0px 8px;
+  box-sizing: border-box;
+  transition: 0.4s;
+  top: calc(100% - 30px);
+  width: 200px;
+  position: fixed;
+  border: 1px solid black;
+}
+
+.modal-roll-title {
+  flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modal-roll-unroll-button {
 }

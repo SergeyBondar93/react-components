@@ -2,23 +2,35 @@ import React, {
   memo,
   MouseEventHandler,
   useCallback,
+  useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import { Transition } from "react-transition-group";
 import { ENTERED, ENTERING, EXITING } from "react-transition-group/Transition";
 
-import { duration, opacityModal, scaleModal, opacityOverlay } from "./consts";
+import {
+  duration,
+  opacityModal,
+  scaleModal,
+  opacityOverlay,
+  rollWidth,
+} from "./consts";
+import { ModalContext } from "./ModalContext";
 import { Portal } from "./Portal";
 
 import "./style.css";
 
 export const Modal = memo(
-  ({ children, isOpen: isOpenProps = false, onClose, name }: any) => {
+  ({ children, isOpen: isOpenProps = false, onClose, name, title }: any) => {
+    const { value, setValue } = useContext(ModalContext);
+
     const [isOpen, setIsOpen] = useState(isOpenProps);
     const [needOverlay, setNeedOverlay] = useState(true);
     const [modalOffset, setModalOffset] = useState({ x: 0, y: 0 });
+    const [isRolled, setIsRolled] = useState(false);
 
     const portalRef = useRef<HTMLDivElement>();
     const offsetClickCoordsRef = useRef<{ x: number; y: number }>();
@@ -26,13 +38,28 @@ export const Modal = memo(
     const wasModevBeforeRef = useRef(false);
     const modalContentRef = useRef<HTMLDivElement>(null);
     const needForRafRef = useRef(true);
+    const isRollingRef = useRef(true);
 
     useEffect(() => {
       setIsOpen(isOpenProps);
     }, [isOpenProps]);
 
     useEffect(() => {
+      if (!isOpen && !value.openedModals.includes(name)) return;
+      if (isOpen && value.openedModals.includes(name)) return;
+
+      const newOpenedModals = isOpen
+        ? [...value.openedModals, name]
+        : value.openedModals.filter((n) => n !== name);
+
+      setValue({
+        openedModals: newOpenedModals,
+      });
+    }, [isOpen, value.openedModals, name]);
+
+    useEffect(() => {
       if (isOpen && (!modalOffset.x || !modalOffset.y)) {
+        isRollingRef.current = false;
         setTimeout(() => {
           const { width, height } =
             modalContentRef.current?.getBoundingClientRect()!;
@@ -46,7 +73,7 @@ export const Modal = memo(
           });
         }, 0);
       }
-    }, [isOpen]);
+    }, [isOpen, name]);
 
     const handleClose: React.MouseEventHandler<
       HTMLDivElement | HTMLButtonElement
@@ -112,6 +139,26 @@ export const Modal = memo(
       setNeedOverlay(!needOverlay);
     }, [needOverlay]);
 
+    const handleRoll = useCallback(() => {
+      setNeedOverlay(false);
+      setIsRolled(true);
+      isRollingRef.current = true;
+    }, [name]);
+
+    const handleUnRoll = useCallback(() => {
+      setNeedOverlay(true);
+      setIsRolled(false);
+      setTimeout(() => {
+        isRollingRef.current = false;
+      }, 0);
+    }, []);
+
+    const rolledOffsetLeft = useMemo(() => {
+      const idx = value.openedModals.findIndex((n) => n === name);
+
+      return (idx === -1 ? 0 : idx) * rollWidth;
+    }, [value.openedModals, name]);
+
     return (
       <Portal ref={portalRef}>
         <Transition timeout={{ enter: 0, exit: duration }} in={isOpen}>
@@ -133,11 +180,22 @@ export const Modal = memo(
                   ref={modalContentRef}
                   style={{
                     transition: `${duration}ms`,
-                    transitionProperty: "transform",
-                    top: `${modalOffset.y}px`,
-                    left: `${modalOffset.x}px`,
+                    transitionProperty: !isRollingRef.current
+                      ? "transform"
+                      : "transform, top, left",
                     transform: `scale(${scaleModal[state]})`,
                     opacity: opacityModal[state],
+
+                    ...(isRolled
+                      ? {
+                          top: "105%",
+                          width: `${rollWidth}px`,
+                          left: `${rolledOffsetLeft}px`,
+                        }
+                      : {
+                          top: `${modalOffset.y}px`,
+                          left: `${modalOffset.x}px`,
+                        }),
                   }}
                   onClick={handleContentClick}
                 >
@@ -147,13 +205,37 @@ export const Modal = memo(
                       className="modal-content-header-movable-zone"
                       onMouseDown={handleMouseDown}
                     />{" "}
-                    <button onClick={handleClose}>Roll</button>{" "}
+                    <button onClick={handleRoll}>Roll</button>{" "}
                     <button onClick={handleClose}>Close</button>{" "}
                   </div>
-                  <div className="modal-content-children-wrapper">
+
+                  <div
+                    className="modal-content-children-wrapper"
+                    style={{ display: isRolled ? "none" : "block" }}
+                  >
                     {children}
                   </div>
                 </div>
+
+                {isOpen && (
+                  <div
+                    className="modal-roll"
+                    style={{
+                      left: `${rolledOffsetLeft}px`,
+                      backgroundColor: isRolled ? "#fff" : "#00ffff",
+                    }}
+                  >
+                    <span className="modal-roll-title">{title}</span>
+                    {isRolled && (
+                      <button
+                        className="modal-roll-unroll-button"
+                        onClick={handleUnRoll}
+                      >
+                        Unroll
+                      </button>
+                    )}
+                  </div>
+                )}
               </>
             )
           }
@@ -162,3 +244,8 @@ export const Modal = memo(
     );
   }
 );
+
+/*
+TODO DnD
+React 18 и их апи по анимациям
+*/

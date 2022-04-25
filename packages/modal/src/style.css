@@ -13,7 +13,6 @@
 }
 
 .modal-content {
-  width: 500px;
   min-height: 200px;
   max-height: calc(100vh - 20px);
   overflow: hidden;
@@ -70,4 +69,35 @@
 }
 
 .modal-roll-unroll-button {
+}
+
+.modal-resizer {
+  position: absolute;
+  background: lightblue;
+}
+.modal-resizer-top,
+.modal-resizer-bottom {
+  height: 7px;
+  width: 100%;
+  cursor: n-resize;
+}
+
+.modal-resizer-right,
+.modal-resizer-left {
+  width: 7px;
+  height: 100%;
+  cursor: e-resize;
+}
+
+.modal-resizer-top {
+  top: 0px;
+}
+.modal-resizer-right {
+  right: 0px;
+}
+.modal-resizer-bottom {
+  bottom: 0px;
+}
+.modal-resizer-left {
+  left: 0px;
 }

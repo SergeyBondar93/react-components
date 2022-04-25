@@ -1,4 +1,5 @@
 import React, {
+  FC,
   memo,
   MouseEventHandler,
   useCallback,
@@ -23,10 +24,19 @@ import { Portal } from "./Portal";
 
 import "./style.css";
 
-export const Modal = memo(
-  ({ children, isOpen: isOpenProps = false, onClose, name, title }: any) => {
-    const { value, setValue } = useContext(ModalContext);
+export interface IModalProps {
+  isOpen?: boolean;
+  onClose?: any;
+  name: string;
+  title?: string;
+}
 
+export const Modal: FC<IModalProps> = memo(
+  ({ children, isOpen: isOpenProps = false, onClose, name, title }) => {
+    const { modalProviderValue, setModalProviderValue } =
+      useContext(ModalContext);
+
+    const [locked, setLocked] = useState(false);
     const [isOpen, setIsOpen] = useState(isOpenProps);
     const [needOverlay, setNeedOverlay] = useState(true);
     const [modalOffset, setModalOffset] = useState({ x: 0, y: 0 });
@@ -45,17 +55,34 @@ export const Modal = memo(
     }, [isOpenProps]);
 
     useEffect(() => {
-      if (!isOpen && !value.openedModals.includes(name)) return;
-      if (isOpen && value.openedModals.includes(name)) return;
+      const includedInOpened = modalProviderValue.openedModals.includes(name);
+      if (!isOpen && !includedInOpened) return;
+      if (isOpen && includedInOpened) return;
 
       const newOpenedModals = isOpen
-        ? [...value.openedModals, name]
-        : value.openedModals.filter((n) => n !== name);
+        ? [...modalProviderValue.openedModals, name]
+        : modalProviderValue.openedModals.filter(
+            (modalName) => modalName !== name
+          );
 
-      setValue({
+      setModalProviderValue({
         openedModals: newOpenedModals,
       });
-    }, [isOpen, value.openedModals, name]);
+    }, [isOpen, modalProviderValue.openedModals, name]);
+
+    useEffect(() => {
+      setModalProviderValue((s) => {
+        const newModalsWithOverlay =
+          isOpen && !isRolled && needOverlay
+            ? [...(s.modalsWithOverlays || []), name]
+            : s.modalsWithOverlays?.filter((n) => n !== name);
+
+        return {
+          ...s,
+          modalsWithOverlays: newModalsWithOverlay,
+        };
+      });
+    }, [needOverlay, name, isOpen, isRolled]);
 
     useEffect(() => {
       if (isOpen && (!modalOffset.x || !modalOffset.y)) {
@@ -152,10 +179,12 @@ export const Modal = memo(
     }, []);
 
     const rolledOffsetLeft = useMemo(() => {
-      const idx = value.openedModals.findIndex((n) => n === name);
+      const idx = modalProviderValue.openedModals.findIndex(
+        (modalName) => modalName === name
+      );
 
       return (idx === -1 ? 0 : idx) * rollWidth;
-    }, [value.openedModals, name]);
+    }, [modalProviderValue.openedModals, name]);
 
     return (
       <Portal ref={portalRef}>

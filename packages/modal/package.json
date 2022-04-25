@@ -8,12 +8,12 @@
   "author": "Sergey Bondar <abobopw@gmail.com>",
   "dependencies": {
     "react": "^17.0.2",
+    "react-use": "^17.3.2",
     "react-transition-group": "^4.4.2",
     "react-dom": "^17.0.2"
   },
   "devDependencies": {
-    "@types/react-transition-group": "^4.4.4",
-    "@serj/scrollbar-width-spy": "^1.0.0"
+    "@types/react-transition-group": "^4.4.4"
   },
   "scripts": {
     "build": "npx webpack --config ../../webpack.config.ts"

@@ -55,30 +55,19 @@ export const Modal: FC<IModalProps> = memo(
     }, [isOpenProps]);
 
     useEffect(() => {
-      const includedInOpened = modalProviderValue.openedModals.includes(name);
-      if (!isOpen && !includedInOpened) return;
-      if (isOpen && includedInOpened) return;
-
-      const newOpenedModals = isOpen
-        ? [...modalProviderValue.openedModals, name]
-        : modalProviderValue.openedModals.filter(
-            (modalName) => modalName !== name
-          );
-
-      setModalProviderValue({
-        openedModals: newOpenedModals,
-      });
-    }, [isOpen, modalProviderValue.openedModals, name]);
-
-    useEffect(() => {
       setModalProviderValue((s) => {
         const newModalsWithOverlay =
           isOpen && !isRolled && needOverlay
-            ? [...(s.modalsWithOverlays || []), name]
+            ? [...s.modalsWithOverlays!, name]
             : s.modalsWithOverlays?.filter((n) => n !== name);
+
+        const newOpenedModals = isOpen
+          ? [...new Set([...s.openedModals!, name])]
+          : s.openedModals?.filter((modalName) => modalName !== name);
 
         return {
           ...s,
+          openedModals: newOpenedModals,
           modalsWithOverlays: newModalsWithOverlay,
         };
       });

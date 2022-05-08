@@ -37,15 +37,17 @@ interface SizesState {
   height: "auto" | number;
 }
 
-type ResizedSides = "top" | "bottom" | "left" | "right";
+interface MouseCoords {
+  clientX: number;
+  clientY: number;
+}
 
-type HandlePrepareToMoveFn = (params: {
-  x: number;
-  y: number;
-  side?: ResizedSides;
-  mouseMoveHandler: (...args: any[]) => void;
-  mouseUpHandler: (...args: any[]) => void;
-}) => void;
+type ResizedSides =
+  | "resize-top"
+  | "resize-bottom"
+  | "resize-left"
+  | "resize-right"
+  | "move";
 
 export const Modal: FC<IModalProps> = memo(
   ({ children, isOpen: isOpenProps = false, onClose, name, title }) => {
@@ -67,12 +69,13 @@ export const Modal: FC<IModalProps> = memo(
 
     const portalRef = useRef<HTMLDivElement>();
     const isMovedRef = useRef(false);
-    const wasModevBeforeRef = useRef(false);
     const modalContentRef = useRef<HTMLDivElement>(null);
     const isRollingRef = useRef(true);
     const resizeClickCoordsRef = useRef({ x: 0, y: 0 });
+    const isMoveLeftSide = useRef(false);
+    const isMoveTopSide = useRef(false);
 
-    const currentResizeSideRef = useRef<ResizedSides>();
+    const currentMovingActionRef = useRef<ResizedSides>();
 
     useEffect(() => {
       setIsOpen(isOpenProps);
@@ -138,55 +141,6 @@ export const Modal: FC<IModalProps> = memo(
         e.stopPropagation();
       }, []);
 
-    const handlePrepareToMove: HandlePrepareToMoveFn = useCallback(
-      ({ x, y, side, mouseMoveHandler, mouseUpHandler }) => {
-        isMovedRef.current = true;
-        document.body.style.userSelect = "none";
-
-        resizeClickCoordsRef.current = { x, y };
-
-        currentResizeSideRef.current = side;
-
-        window.addEventListener("mousemove", mouseMoveHandler);
-        window.addEventListener("mouseup", mouseUpHandler);
-      },
-      []
-    );
-
-    const handleMouseMove = useCallback(({ clientX, clientY }) => {
-      wasModevBeforeRef.current = true;
-      const offsetX = clientX - resizeClickCoordsRef.current?.x!;
-      const offsetY = clientY - resizeClickCoordsRef.current?.y!;
-
-      setModalOffset({
-        x: offsetX,
-        y: offsetY,
-      });
-    }, []);
-
-    const handleMouseUp = useCallback(() => {
-      setTimeout(() => {
-        isMovedRef.current = false;
-      }, 100);
-
-      document.body.style.userSelect = "auto";
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    }, []);
-
-    const handleMouseDown: MouseEventHandler<HTMLDivElement> = useCallback(
-      ({ clientX, clientY }) => {
-        const { x, y } = modalContentRef.current!.getBoundingClientRect();
-        handlePrepareToMove({
-          x: clientX - x,
-          y: clientY - y,
-          mouseMoveHandler: handleMouseMove,
-          mouseUpHandler: handleMouseUp,
-        });
-      },
-      []
-    );
-
     const handleToggleNeedOverlay = useCallback(() => {
       setNeedOverlay(!needOverlay);
     }, [needOverlay]);
@@ -203,6 +157,32 @@ export const Modal: FC<IModalProps> = memo(
       }, 0);
     }, []);
 
+    const handlePrepareToMove = useCallback(
+      ({ x, y, side }: { x: number; y: number; side?: ResizedSides }) => {
+        isMovedRef.current = true;
+        document.body.style.userSelect = "none";
+
+        resizeClickCoordsRef.current = { x, y };
+
+        currentMovingActionRef.current = side;
+
+        window.addEventListener("mousemove", handleResize);
+        window.addEventListener("mouseup", handleResizeEnd);
+      },
+      []
+    );
+
+    const handleMouseDown: React.MouseEventHandler<HTMLDivElement> =
+      useCallback(({ clientX, clientY }) => {
+        isMoveLeftSide.current = true;
+        isMoveTopSide.current = true;
+        handlePrepareToMove({
+          x: clientX,
+          y: clientY,
+          side: "move",
+        });
+      }, []);
+
     const rolledOffsetLeft = useMemo(() => {
       const idx = modalProviderValue.openedModals.findIndex(
         (modalName) => modalName === name
@@ -210,38 +190,32 @@ export const Modal: FC<IModalProps> = memo(
 
       return (idx === -1 ? 0 : idx) * rollWidth;
     }, [modalProviderValue.openedModals, name]);
-    const isMoveLeftSide = useRef(false);
-    const isMoveTopSide = useRef(false);
 
-    const handleResizeTopMouseDown = useCallback((e) => {
-      isMoveTopSide.current = true;
-      handlePrepareToMove({
-        x: e.clientX,
-        y: e.clientY,
-        side: "top",
-        mouseMoveHandler: handleResize,
-        mouseUpHandler: handleResizeEnd,
-      });
-    }, []);
+    const handleResizeTopMouseDown: React.MouseEventHandler<HTMLDivElement> =
+      useCallback((e) => {
+        isMoveTopSide.current = true;
+        handlePrepareToMove({
+          x: e.clientX,
+          y: e.clientY,
+          side: "resize-top",
+        });
+      }, []);
 
-    const handleResizeBottomMouseDown = useCallback((e) => {
-      handlePrepareToMove({
-        x: e.clientX,
-        y: e.clientY,
-        side: "bottom",
-        mouseMoveHandler: handleResize,
-        mouseUpHandler: handleResizeEnd,
-      });
-    }, []);
+    const handleResizeBottomMouseDown: React.MouseEventHandler<HTMLDivElement> =
+      useCallback((e) => {
+        handlePrepareToMove({
+          x: e.clientX,
+          y: e.clientY,
+          side: "resize-bottom",
+        });
+      }, []);
 
     const handleResizeRightMouseDown: React.MouseEventHandler<HTMLDivElement> =
       useCallback((e) => {
         handlePrepareToMove({
           x: e.clientX,
           y: e.clientY,
-          side: "right",
-          mouseMoveHandler: handleResize,
-          mouseUpHandler: handleResizeEnd,
+          side: "resize-right",
         });
       }, []);
 
@@ -251,9 +225,7 @@ export const Modal: FC<IModalProps> = memo(
         handlePrepareToMove({
           x: e.clientX,
           y: e.clientY,
-          side: "left",
-          mouseMoveHandler: handleResize,
-          mouseUpHandler: handleResizeEnd,
+          side: "resize-left",
         });
       }, []);
 
@@ -274,28 +246,37 @@ export const Modal: FC<IModalProps> = memo(
         return 0;
       });
 
-      setSizes((s) => ({
-        width: s.width + widthDiff,
-        height: (s.height as number) + heightDiff,
-      }));
+      if (currentMovingActionRef.current !== "move") {
+        setSizes((s) => ({
+          width: s.width + widthDiff,
+          height: (s.height as number) + heightDiff,
+        }));
+      }
 
-      if (currentResizeSideRef.current === "top") {
+      if (currentMovingActionRef.current === "resize-top") {
         setModalOffset((offset) => {
           return {
             ...offset,
             y: offset.y - heightDiff,
           };
         });
-      } else if (currentResizeSideRef.current === "left") {
+      } else if (currentMovingActionRef.current === "resize-left") {
         setModalOffset((offset) => {
           return {
             ...offset,
             x: offset.x - widthDiff,
           };
         });
+      } else if (currentMovingActionRef.current === "move") {
+        setModalOffset((offset) => {
+          return {
+            y: offset.y - heightDiff,
+            x: offset.x - widthDiff,
+          };
+        });
       }
 
-      currentResizeSideRef.current = undefined;
+      currentMovingActionRef.current = undefined;
       isMoveLeftSide.current = false;
       isMoveTopSide.current = false;
       document.body.style.userSelect = "auto";
@@ -305,21 +286,25 @@ export const Modal: FC<IModalProps> = memo(
 
     const handlersMap = useMemo(
       () => ({
-        top: ({ clientY }: { clientY: number }) =>
+        "resize-top": ({ clientY }: MouseCoords) =>
           setHeightDiff(resizeClickCoordsRef.current.y - clientY),
-        bottom: ({ clientY }: { clientY: number }) =>
+        "resize-bottom": ({ clientY }: MouseCoords) =>
           setHeightDiff(clientY - resizeClickCoordsRef.current.y),
-        right: ({ clientX }: { clientX: number }) =>
+        "resize-right": ({ clientX }: MouseCoords) =>
           setWidthDiff(clientX - resizeClickCoordsRef.current.x),
-        left: ({ clientX }: { clientX: number }) =>
+        "resize-left": ({ clientX }: MouseCoords) =>
           setWidthDiff(resizeClickCoordsRef.current.x - clientX),
+        move: ({ clientX, clientY }: MouseCoords) => {
+          setHeightDiff(resizeClickCoordsRef.current.y - clientY);
+          setWidthDiff(resizeClickCoordsRef.current.x - clientX);
+        },
       }),
       []
     );
 
     const handleResize = useCallback(
       (mouseCoords: { clientX: number; clientY: number }) => {
-        handlersMap[currentResizeSideRef.current!](mouseCoords);
+        handlersMap[currentMovingActionRef.current!](mouseCoords);
       },
       []
     );
@@ -362,9 +347,19 @@ export const Modal: FC<IModalProps> = memo(
                           height:
                             sizes.height === "auto"
                               ? sizes.height
-                              : `${sizes.height + heightDiff}px`,
+                              : `${
+                                  sizes.height +
+                                  (currentMovingActionRef.current! === "move"
+                                    ? 0
+                                    : heightDiff)
+                                }px`,
 
-                          width: `${sizes.width + widthDiff}px`,
+                          width: `${
+                            sizes.width +
+                            (currentMovingActionRef.current! === "move"
+                              ? 0
+                              : widthDiff)
+                          }px`,
                           top: `${
                             modalOffset.y -
                             (isMoveTopSide.current ? heightDiff : 0)

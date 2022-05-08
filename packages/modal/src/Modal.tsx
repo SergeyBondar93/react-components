@@ -37,15 +37,15 @@ interface SizesState {
   height: "auto" | number;
 }
 
-type List<K extends keyof WindowEventMap = keyof WindowEventMap> = {
-  on: K;
-  listener: (arg?: any) => void;
-};
+type ResizedSides = "top" | "bottom" | "left" | "right";
 
-type HandlePrepareToMoveFn<K extends keyof WindowEventMap> = (
-  clickCoords: { x: number; y: number },
-  windowEvents: List[]
-) => void;
+type HandlePrepareToMoveFn = (params: {
+  x: number;
+  y: number;
+  side?: ResizedSides;
+  mouseMoveHandler: (...args: any[]) => void;
+  mouseUpHandler: (...args: any[]) => void;
+}) => void;
 
 export const Modal: FC<IModalProps> = memo(
   ({ children, isOpen: isOpenProps = false, onClose, name, title }) => {
@@ -71,6 +71,8 @@ export const Modal: FC<IModalProps> = memo(
     const modalContentRef = useRef<HTMLDivElement>(null);
     const isRollingRef = useRef(true);
     const resizeClickCoordsRef = useRef({ x: 0, y: 0 });
+
+    const currentResizeSideRef = useRef<ResizedSides>();
 
     useEffect(() => {
       setIsOpen(isOpenProps);
@@ -136,6 +138,21 @@ export const Modal: FC<IModalProps> = memo(
         e.stopPropagation();
       }, []);
 
+    const handlePrepareToMove: HandlePrepareToMoveFn = useCallback(
+      ({ x, y, side, mouseMoveHandler, mouseUpHandler }) => {
+        isMovedRef.current = true;
+        document.body.style.userSelect = "none";
+
+        resizeClickCoordsRef.current = { x, y };
+
+        currentResizeSideRef.current = side;
+
+        window.addEventListener("mousemove", mouseMoveHandler);
+        window.addEventListener("mouseup", mouseUpHandler);
+      },
+      []
+    );
+
     const handleMouseMove = useCallback(({ clientX, clientY }) => {
       wasModevBeforeRef.current = true;
       const offsetX = clientX - resizeClickCoordsRef.current?.x!;
@@ -154,37 +171,18 @@ export const Modal: FC<IModalProps> = memo(
 
       document.body.style.userSelect = "auto";
       window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp, true);
+      window.removeEventListener("mouseup", handleMouseUp);
     }, []);
-
-    const handlePrepareToMove: HandlePrepareToMoveFn<any> = useCallback(
-      (clickCoords, windowEvents) => {
-        isMovedRef.current = true;
-        document.body.style.userSelect = "none";
-
-        resizeClickCoordsRef.current = clickCoords;
-
-        windowEvents.forEach(({ on, listener }) => {
-          window.addEventListener(on, listener);
-        });
-      },
-      []
-    );
 
     const handleMouseDown: MouseEventHandler<HTMLDivElement> = useCallback(
       ({ clientX, clientY }) => {
         const { x, y } = modalContentRef.current!.getBoundingClientRect();
-
-        handlePrepareToMove(
-          {
-            x: clientX - x,
-            y: clientY - y,
-          },
-          [
-            { on: "mousemove" as const, listener: handleMouseMove },
-            { on: "mouseup" as const, listener: handleMouseUp },
-          ]
-        );
+        handlePrepareToMove({
+          x: clientX - x,
+          y: clientY - y,
+          mouseMoveHandler: handleMouseMove,
+          mouseUpHandler: handleMouseUp,
+        });
       },
       []
     );
@@ -217,158 +215,114 @@ export const Modal: FC<IModalProps> = memo(
 
     const handleResizeTopMouseDown = useCallback((e) => {
       isMoveTopSide.current = true;
-      handlePrepareToMove(
-        {
-          x: e.clientX,
-          y: e.clientY,
-        },
-        [
-          { on: "mousemove", listener: handleResizeTop },
-          { on: "mouseup", listener: handleResizeTopEnd },
-        ]
-      );
+      handlePrepareToMove({
+        x: e.clientX,
+        y: e.clientY,
+        side: "top",
+        mouseMoveHandler: handleResize,
+        mouseUpHandler: handleResizeEnd,
+      });
     }, []);
 
     const handleResizeBottomMouseDown = useCallback((e) => {
-      handlePrepareToMove(
-        {
-          x: e.clientX,
-          y: e.clientY,
-        },
-        [
-          { on: "mousemove", listener: handleResizeBottom },
-          { on: "mouseup", listener: handleResizeBottomEnd },
-        ]
-      );
+      handlePrepareToMove({
+        x: e.clientX,
+        y: e.clientY,
+        side: "bottom",
+        mouseMoveHandler: handleResize,
+        mouseUpHandler: handleResizeEnd,
+      });
     }, []);
 
     const handleResizeRightMouseDown: React.MouseEventHandler<HTMLDivElement> =
       useCallback((e) => {
-        handlePrepareToMove(
-          {
-            x: e.clientX,
-            y: e.clientY,
-          },
-          [
-            { on: "mousemove", listener: handleResizeRight },
-            { on: "mouseup", listener: handleResizeRightEnd },
-          ]
-        );
+        handlePrepareToMove({
+          x: e.clientX,
+          y: e.clientY,
+          side: "right",
+          mouseMoveHandler: handleResize,
+          mouseUpHandler: handleResizeEnd,
+        });
       }, []);
 
     const handleResizeLeftMouseDown: React.MouseEventHandler<HTMLDivElement> =
       useCallback((e) => {
         isMoveLeftSide.current = true;
-        handlePrepareToMove(
-          {
-            x: e.clientX,
-            y: e.clientY,
-          },
-          [
-            { on: "mousemove", listener: handleResizeLeft },
-            { on: "mouseup", listener: handleResizeLeftEnd },
-          ]
-        );
+        handlePrepareToMove({
+          x: e.clientX,
+          y: e.clientY,
+          side: "left",
+          mouseMoveHandler: handleResize,
+          mouseUpHandler: handleResizeEnd,
+        });
       }, []);
 
-    const handleResizeTopEnd = useCallback(() => {
+    const handleResizeEnd = useCallback(() => {
       setTimeout(() => {
         isMovedRef.current = false;
       }, 100);
 
-      let diff = 0;
+      let heightDiff = 0;
       setHeightDiff((oldDiff) => {
-        diff = oldDiff;
+        heightDiff = oldDiff;
         return 0;
       });
+
+      let widthDiff = 0;
+      setWidthDiff((oldDiff) => {
+        widthDiff = oldDiff;
+        return 0;
+      });
+
       setSizes((s) => ({
-        width: s.width,
-        height: (s.height as number) + diff,
+        width: s.width + widthDiff,
+        height: (s.height as number) + heightDiff,
       }));
 
-      setModalOffset((offset) => {
-        return {
-          ...offset,
-          y: offset.y - diff,
-        };
-      });
+      if (currentResizeSideRef.current === "top") {
+        setModalOffset((offset) => {
+          return {
+            ...offset,
+            y: offset.y - heightDiff,
+          };
+        });
+      } else if (currentResizeSideRef.current === "left") {
+        setModalOffset((offset) => {
+          return {
+            ...offset,
+            x: offset.x - widthDiff,
+          };
+        });
+      }
+
+      currentResizeSideRef.current = undefined;
+      isMoveLeftSide.current = false;
       isMoveTopSide.current = false;
       document.body.style.userSelect = "auto";
-      window.removeEventListener("mousemove", handleResizeTop);
-      window.removeEventListener("mouseup", handleResizeTopEnd, true);
-    }, []);
-    const handleResizeBottomEnd = useCallback(() => {
-      setTimeout(() => {
-        isMovedRef.current = false;
-      }, 100);
-
-      let diff = 0;
-      setHeightDiff((oldDiff) => {
-        diff = oldDiff;
-        return 0;
-      });
-      setSizes((s) => ({
-        width: s.width,
-        height: (s.height as number) + diff,
-      }));
-
-      document.body.style.userSelect = "auto";
-      window.removeEventListener("mousemove", handleResizeBottom);
-      window.removeEventListener("mouseup", handleResizeBottomEnd, true);
-    }, []);
-    const handleResizeRightEnd = useCallback(() => {
-      setTimeout(() => {
-        isMovedRef.current = false;
-      }, 100);
-
-      let diff = 0;
-      setWidthDiff((oldDiff) => {
-        diff = oldDiff;
-        return 0;
-      });
-      setSizes((s) => ({ width: s.width + diff, height: s.height }));
-
-      document.body.style.userSelect = "auto";
-      window.removeEventListener("mousemove", handleResizeRight);
-      window.removeEventListener("mouseup", handleResizeRightEnd, true);
-    }, []);
-    const handleResizeLeftEnd = useCallback(() => {
-      setTimeout(() => {
-        isMovedRef.current = false;
-      }, 100);
-
-      let diff = 0;
-      setWidthDiff((oldDiff) => {
-        diff = oldDiff;
-        return 0;
-      });
-      setSizes((s) => ({ width: s.width + diff, height: s.height }));
-
-      setModalOffset((offset) => {
-        return {
-          ...offset,
-          x: offset.x - diff,
-        };
-      });
-
-      isMoveLeftSide.current = false;
-      document.body.style.userSelect = "auto";
-      window.removeEventListener("mousemove", handleResizeLeft);
-      window.removeEventListener("mouseup", handleResizeLeftEnd, true);
+      window.removeEventListener("mousemove", handleResize);
+      window.removeEventListener("mouseup", handleResizeEnd);
     }, []);
 
-    const handleResizeTop = useCallback(({ clientY }: MouseEvent) => {
-      setHeightDiff(resizeClickCoordsRef.current.y - clientY);
-    }, []);
-    const handleResizeBottom = useCallback(({ clientY }: MouseEvent) => {
-      setHeightDiff(clientY - resizeClickCoordsRef.current.y);
-    }, []);
-    const handleResizeRight = useCallback(({ clientX }: MouseEvent) => {
-      setWidthDiff(clientX - resizeClickCoordsRef.current.x);
-    }, []);
-    const handleResizeLeft = useCallback(({ clientX }: MouseEvent) => {
-      setWidthDiff(resizeClickCoordsRef.current.x - clientX);
-    }, []);
+    const handlersMap = useMemo(
+      () => ({
+        top: ({ clientY }: { clientY: number }) =>
+          setHeightDiff(resizeClickCoordsRef.current.y - clientY),
+        bottom: ({ clientY }: { clientY: number }) =>
+          setHeightDiff(clientY - resizeClickCoordsRef.current.y),
+        right: ({ clientX }: { clientX: number }) =>
+          setWidthDiff(clientX - resizeClickCoordsRef.current.x),
+        left: ({ clientX }: { clientX: number }) =>
+          setWidthDiff(resizeClickCoordsRef.current.x - clientX),
+      }),
+      []
+    );
+
+    const handleResize = useCallback(
+      (mouseCoords: { clientX: number; clientY: number }) => {
+        handlersMap[currentResizeSideRef.current!](mouseCoords);
+      },
+      []
+    );
 
     return (
       <Portal ref={portalRef}>
@@ -485,8 +439,3 @@ export const Modal: FC<IModalProps> = memo(
     );
   }
 );
-
-/*
-TODO DnD
-React 18 и их апи по анимациям
-*/

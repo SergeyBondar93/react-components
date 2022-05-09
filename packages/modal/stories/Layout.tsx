@@ -8,11 +8,14 @@ export const Layout: FC = ({ children }) => {
   const [isShowScrollbar, setIsShowScrollbar] = useState(false);
 
   useEffect(() => {
-    const observer = new MutationObserver(([mutation]) => {
-      const isBodyOverflowHidden =
-        (mutation.target as HTMLBodyElement).style.overflow === "hidden";
+    setIsShowScrollbar(
+      window.innerWidth > document.documentElement.clientWidth
+    );
 
-      setIsShowScrollbar(!isBodyOverflowHidden);
+    const observer = new MutationObserver(([mutation]) => {
+      setIsShowScrollbar(
+        window.innerWidth > document.documentElement.clientWidth
+      );
     });
     observer.observe(document.body, { attributes: true });
 

@@ -8,6 +8,13 @@ type TransitionStatusMaps = {
   [key in TransitionStatus]: number;
 };
 
+export const defaultModalSizes = {
+  width: 500,
+  height: "auto",
+} as const;
+
+export const defaultModalOffset = { x: 0, y: 0 };
+
 export const scaleModal: TransitionStatusMaps = {
   entering: 0.8,
   entered: 1,

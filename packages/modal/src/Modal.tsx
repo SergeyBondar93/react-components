@@ -1,8 +1,6 @@
 import React, {
-  CSSProperties,
   FC,
   memo,
-  MouseEventHandler,
   useCallback,
   useContext,
   useEffect,
@@ -24,8 +22,19 @@ import {
 } from "./consts";
 import { ModalContext } from "./ModalContext";
 import { Portal } from "./Portal";
-
-import "./style.css";
+import {
+  ResizerTop,
+  ResizerRight,
+  ResizerBottom,
+  ResizerLeft,
+  ModalOverlay,
+  RolledTag,
+  RolledTitle,
+  ModalContent,
+  ChildrenWrapper,
+  CloseButtonWrapper,
+  HeaderMovableZone,
+} from "./styled";
 
 export interface IModalProps {
   isOpen?: boolean;
@@ -321,6 +330,8 @@ export const Modal: FC<IModalProps> = memo((props) => {
     handlersMap[currentMovingActionRef.current!](mouseCoords);
   }, []);
 
+  const isMoving = currentMovingActionRef.current! === "move";
+
   return (
     <Portal ref={portalRef}>
       <Transition timeout={{ enter: 0, exit: duration }} in={isOpen}>
@@ -328,117 +339,57 @@ export const Modal: FC<IModalProps> = memo((props) => {
           [ENTERING, ENTERED, EXITING].includes(state) && (
             <>
               {needOverlay && !isRolled && (
-                <div
-                  className="modal-overlay"
-                  style={{
-                    transition: `${duration}ms`,
-                    opacity: opacityOverlay[state],
-                  }}
+                <ModalOverlay
+                  opacity={opacityOverlay[state]}
                   onClick={handleClose}
-                ></div>
+                />
               )}
-              <div
-                className="modal-content"
+              <ModalContent
                 ref={modalContentRef}
-                style={{
-                  transition: `${duration}ms`,
-                  transitionProperty: !isRollingRef.current
-                    ? "transform"
-                    : "transform, top, left",
-                  transform: `scale(${scaleModal[state]})`,
-                  opacity: opacityModal[state],
-                  maxHeight:
-                    sizes.height === "auto" ? "calc(100vh - 20px)" : undefined,
-
-                  ...(isRolled
-                    ? {
-                        top: "105%",
-                        width: `${rollWidth}px`,
-                        height: "30px",
-                        left: `${rolledOffsetLeft}px`,
-                      }
-                    : {
-                        height:
-                          sizes.height === "auto"
-                            ? sizes.height
-                            : `${
-                                sizes.height +
-                                (currentMovingActionRef.current! === "move"
-                                  ? 0
-                                  : heightDiff)
-                              }px`,
-
-                        width: `${
-                          sizes.width +
-                          (currentMovingActionRef.current! === "move"
-                            ? 0
-                            : widthDiff)
-                        }px`,
-                        top: `${
-                          modalOffset.y -
-                          (isMoveTopSide.current ? heightDiff : 0)
-                        }px`,
-                        left: `${
-                          modalOffset.x -
-                          (isMoveLeftSide.current ? widthDiff : 0)
-                        }px`,
-                      }),
-                }}
+                isRolling={isRollingRef.current!}
+                scale={scaleModal[state]}
+                opacity={opacityModal[state]}
+                maxHeight={
+                  sizes.height === "auto" ? "calc(100vh - 20px)" : undefined
+                }
+                rolledOffsetLeft={rolledOffsetLeft}
+                isRolled={isRolled}
+                height={
+                  sizes.height === "auto"
+                    ? sizes.height
+                    : `${sizes.height + (isMoving ? 0 : heightDiff)}px`
+                }
+                width={`${sizes.width + (isMoving ? 0 : widthDiff)}px`}
+                top={`${
+                  modalOffset.y - (isMoveTopSide.current ? heightDiff : 0)
+                }px`}
+                left={`${
+                  modalOffset.x - (isMoveLeftSide.current ? widthDiff : 0)
+                }px`}
                 onClick={handleContentClick}
               >
-                <div
-                  onMouseDown={handleResizeTopMouseDown}
-                  className="modal-resizer  modal-resizer-top"
-                ></div>
-                <div
-                  onMouseDown={handleResizeRightMouseDown}
-                  className="modal-resizer  modal-resizer-right"
-                ></div>
-                <div
-                  onMouseDown={handleResizeBottomMouseDown}
-                  className="modal-resizer  modal-resizer-bottom"
-                ></div>
-                <div
-                  onMouseDown={handleResizeLeftMouseDown}
-                  className="modal-resizer  modal-resizer-left"
-                ></div>
+                <ResizerTop onMouseDown={handleResizeTopMouseDown} />
+                <ResizerRight onMouseDown={handleResizeRightMouseDown} />
+                <ResizerBottom onMouseDown={handleResizeBottomMouseDown} />
+                <ResizerLeft onMouseDown={handleResizeLeftMouseDown} />
 
-                <div className="modal-content-close-button-wrapper">
+                <CloseButtonWrapper>
                   <button onClick={handleToggleNeedOverlay}>Over</button>
-                  <div
-                    className="modal-content-header-movable-zone"
-                    onMouseDown={handleMouseDown}
-                  />{" "}
+                  <HeaderMovableZone onMouseDown={handleMouseDown} />{" "}
                   <button onClick={handleRoll}>Roll</button>{" "}
                   <button onClick={handleClose}>Close</button>{" "}
-                </div>
+                </CloseButtonWrapper>
 
-                <div
-                  className="modal-content-children-wrapper"
-                  style={{ display: isRolled ? "none" : "block" }}
-                >
+                <ChildrenWrapper isRolled={isRolled}>
                   {children}
-                </div>
-              </div>
+                </ChildrenWrapper>
+              </ModalContent>
 
               {isOpen && (
-                <div
-                  className="modal-roll"
-                  style={{
-                    left: `${rolledOffsetLeft}px`,
-                    backgroundColor: isRolled ? "#fff" : "#00ffff",
-                  }}
-                >
-                  <span className="modal-roll-title">{title}</span>
-                  {isRolled && (
-                    <button
-                      className="modal-roll-unroll-button"
-                      onClick={handleUnRoll}
-                    >
-                      Unroll
-                    </button>
-                  )}
-                </div>
+                <RolledTag left={rolledOffsetLeft} isRolled={isRolled}>
+                  <RolledTitle>{title}</RolledTitle>
+                  {isRolled && <button onClick={handleUnRoll}>Unroll</button>}
+                </RolledTag>
               )}
             </>
           )

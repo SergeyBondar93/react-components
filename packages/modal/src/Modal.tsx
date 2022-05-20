@@ -83,10 +83,13 @@ export const Modal: FC<IModalProps> = memo((props) => {
   const portalRef = useRef<HTMLDivElement>();
   const modalContentRef = useRef<HTMLDivElement>(null);
   const resizeClickCoordsRef = useRef({ x: 0, y: 0 });
+  const prevOffsetRef = useRef({ x: 0, y: 0 });
   const isMovedRef = useRef(false);
   const isRollingRef = useRef(false);
   const isMoveLeftSide = useRef(false);
   const isMoveTopSide = useRef(false);
+
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   const currentMovingActionRef = useRef<ResizedSides>();
 
@@ -151,6 +154,7 @@ export const Modal: FC<IModalProps> = memo((props) => {
     setTimeout(() => {
       setSizes(defaultModalSizes);
       setModalOffset(defaultModalOffset);
+      setIsFullScreen(false);
     }, duration);
   }, [onClose, name]);
 
@@ -330,7 +334,41 @@ export const Modal: FC<IModalProps> = memo((props) => {
     handlersMap[currentMovingActionRef.current!](mouseCoords);
   }, []);
 
+  const handleDoubleClick = useCallback(() => {
+    isRollingRef.current = true;
+    setTimeout(() => {
+      isRollingRef.current = false;
+    }, duration);
+
+    setModalOffset((v) => {
+      if (isFullScreen) {
+        prevOffsetRef.current = v;
+        return { x: 0, y: 0 };
+      } else {
+        return prevOffsetRef.current;
+      }
+    });
+    setIsFullScreen(!isFullScreen);
+  }, [isFullScreen]);
+  console.log(prevOffsetRef.current);
   const isMoving = currentMovingActionRef.current! === "move";
+
+  const computedSizes = useMemo(() => {
+    if (isFullScreen) {
+      return {
+        width: document.documentElement.clientWidth + "px",
+        height: document.documentElement.clientHeight + "px",
+      };
+    }
+
+    return {
+      height:
+        sizes.height === "auto"
+          ? sizes.height
+          : `${sizes.height + (isMoving ? 0 : heightDiff)}px`,
+      width: `${sizes.width + (isMoving ? 0 : widthDiff)}px`,
+    };
+  }, [sizes, isMoving, heightDiff, widthDiff, isFullScreen]);
 
   return (
     <Portal ref={portalRef}>
@@ -354,12 +392,8 @@ export const Modal: FC<IModalProps> = memo((props) => {
                 }
                 rolledOffsetLeft={rolledOffsetLeft}
                 isRolled={isRolled}
-                height={
-                  sizes.height === "auto"
-                    ? sizes.height
-                    : `${sizes.height + (isMoving ? 0 : heightDiff)}px`
-                }
-                width={`${sizes.width + (isMoving ? 0 : widthDiff)}px`}
+                height={computedSizes.height}
+                width={computedSizes.width}
                 top={`${
                   modalOffset.y - (isMoveTopSide.current ? heightDiff : 0)
                 }px`}
@@ -375,7 +409,10 @@ export const Modal: FC<IModalProps> = memo((props) => {
 
                 <CloseButtonWrapper>
                   <button onClick={handleToggleNeedOverlay}>Over</button>
-                  <HeaderMovableZone onMouseDown={handleMouseDown} />{" "}
+                  <HeaderMovableZone
+                    onMouseDown={handleMouseDown}
+                    onDoubleClick={handleDoubleClick}
+                  />{" "}
                   <button onClick={handleRoll}>Roll</button>{" "}
                   <button onClick={handleClose}>Close</button>{" "}
                 </CloseButtonWrapper>

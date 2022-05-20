@@ -110,7 +110,9 @@ export const ModalContent = styled.div.attrs<IModalContentProps>(
     rolledOffsetLeft,
   }) => ({
     style: {
-      transitionProperty: !isRolling ? "transform" : "transform, top, left",
+      transitionProperty: isRolling
+        ? "transform, top, left, width, height"
+        : "transform",
       transform: `scale(${scale})`,
       opacity,
       maxHeight,
